@@ -1,7 +1,7 @@
 {application, ets_mgr,
  [
   {description, "Keep your ETS tables safe"},
-  {vsn, "0.9.0"},
+  {vsn, "0.9.1"},
   {registered, [ets_mgr]},
   {applications, [
                   kernel,
