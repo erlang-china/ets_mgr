@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% Public API
--export([start_link/0, new/2, file2tab/1, file2tab/2, give_away/1, watch/1, recover/2]).
+-export([start_link/0, new/2, soft_new/2, file2tab/1, file2tab/2, give_away/1, watch/1, recover/2]).
 
 %% OTP gen_server Callbacks
 -export([init/1,
@@ -80,6 +80,34 @@ new(Name, Options) when is_tuple(Name) ->
         Reply ->
             Reply
     end.
+
+%% @doc
+%% Creates a new ets table, if the .
+%%
+%% The options accepted are identical to those found in the documentation for
+%% ets:new/2, however this function will overwrite any provided heir options.
+%% @end
+-spec soft_new(Name, Options) -> ets:tid() | atom() when
+    Name :: atom() | {atom(), term()},
+    Options :: [Option],
+    Option :: Type | Access | named_table | {keypos, Pos} | Tweaks,
+    Type :: set | ordered_set | bag | duplicate_bag,
+    Access :: public | protected | private,
+    Tweaks :: {write_concurrency, boolean()} | {read_concurrency, boolean()} | compressed,
+    Pos :: integer().
+soft_new(Name, Options) ->
+    case is_tab_exist(Name) of
+        true->
+            case ?MODULE:give_away(Name) of
+                Name ->
+                    Name;
+                not_found->
+                    ?MODULE:watch(Name),
+                    Name
+            end;
+        false->
+            ?MODULE:new(Name, Options)
+end.
 
 %% @doc
 %% Reads a file produced from ets:tab2file/2 or ets:tab2file/3 and creates the corresponding table Tab.
@@ -392,3 +420,7 @@ del_orphan(Key, #state{ orphaned=Orphans }=State0) ->
         error ->
             not_found
     end.
+
+is_tab_exist(undefined)-> false;
+is_tab_exist(TabName)->
+    TabName == ets:info(TabName, name).
